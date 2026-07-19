@@ -5,11 +5,29 @@
   become: true
   serial: 1
   any_errors_fatal: true
-  roles:
-    - patch_preflight
-    - offline_repo
-    - patch_apply
-    - patch_verify
+  tasks:
+    - name: Run guarded canary patch workflow
+      block:
+        - name: Run canary preflight checks
+          ansible.builtin.include_role:
+            name: patch_preflight
+
+        - name: Stage verified offline repository on canary
+          ansible.builtin.include_role:
+            name: offline_repo
+
+        - name: Apply approved canary updates
+          ansible.builtin.include_role:
+            name: patch_apply
+
+        - name: Verify canary health and write evidence
+          ansible.builtin.include_role:
+            name: patch_verify
+      always:
+        - name: Remove temporary canary patch content
+          ansible.builtin.include_role:
+            name: patch_cleanup
+          when: patch_apply | bool
 
 - name: Patch remaining fleet from verified offline bundle
   hosts: fleet
@@ -17,8 +35,26 @@
   become: true
   serial: 1
   max_fail_percentage: 0
-  roles:
-    - patch_preflight
-    - offline_repo
-    - patch_apply
-    - patch_verify
+  tasks:
+    - name: Run guarded fleet patch workflow
+      block:
+        - name: Run fleet preflight checks
+          ansible.builtin.include_role:
+            name: patch_preflight
+
+        - name: Stage verified offline repository on fleet host
+          ansible.builtin.include_role:
+            name: offline_repo
+
+        - name: Apply approved fleet updates
+          ansible.builtin.include_role:
+            name: patch_apply
+
+        - name: Verify fleet health and write evidence
+          ansible.builtin.include_role:
+            name: patch_verify
+      always:
+        - name: Remove temporary fleet patch content
+          ansible.builtin.include_role:
+            name: patch_cleanup
+          when: patch_apply | bool

@@ -27,6 +27,9 @@ jobs:
       - name: Run Python tests
         run: pytest -q
 
+      - name: Check shell syntax
+        run: bash -n scripts/bootstrap.sh scripts/build-demo-bundle.sh scripts/lab.sh
+
       - name: Check Ansible syntax
         env:
           ANSIBLE_CONFIG: ./ansible.cfg
