@@ -1,0 +1,16 @@
+services:
+  patch-canary:
+    build:
+      context: .
+    hostname: patch-canary
+    ports: ["2221:22"]
+  patch-app01:
+    build:
+      context: .
+    hostname: patch-app01
+    ports: ["2222:22"]
+  patch-app02:
+    build:
+      context: .
+    hostname: patch-app02
+    ports: ["2223:22"]

@@ -1,0 +1,24 @@
+---
+- name: Install approved updates from offline repository only
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    security: "{{ patch_security_only }}"
+    update_only: true
+    disablerepo: "*"
+    enablerepo: "{{ patch_repo_id }}"
+  register: patch_transaction
+
+- name: Detect whether reboot is recommended
+  ansible.builtin.command:
+    cmd: dnf needs-restarting -r
+  register: patch_reboot_check
+  changed_when: false
+  failed_when: patch_reboot_check.rc not in [0, 1]
+
+- name: Reboot when explicitly allowed and required
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+  when:
+    - patch_reboot_allowed | bool
+    - patch_reboot_check.rc == 1

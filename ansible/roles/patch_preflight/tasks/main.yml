@@ -1,0 +1,31 @@
+---
+- name: Assert supported operating system family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == "RedHat"
+    fail_msg: "Only RHEL-compatible targets are supported by this lab."
+
+- name: Read free space for root filesystem
+  ansible.builtin.command:
+    cmd: df -Pm /
+  register: patch_root_df
+  changed_when: false
+
+- name: Parse root filesystem free space
+  ansible.builtin.set_fact:
+    patch_root_free_mb: "{{ patch_root_df.stdout_lines[-1].split()[3] | int }}"
+
+- name: Assert sufficient free disk space
+  ansible.builtin.assert:
+    that:
+      - patch_root_free_mb | int >= patch_min_free_mb | int
+    fail_msg: "Root filesystem has only {{ patch_root_free_mb }} MiB free."
+
+- name: Capture preflight evidence
+  ansible.builtin.set_fact:
+    patch_preflight_evidence:
+      hostname: "{{ ansible_facts.hostname }}"
+      distribution: "{{ ansible_facts.distribution }}"
+      distribution_version: "{{ ansible_facts.distribution_version }}"
+      kernel_before: "{{ ansible_facts.kernel }}"
+      root_free_mb: "{{ patch_root_free_mb }}"

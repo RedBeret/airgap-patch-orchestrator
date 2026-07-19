@@ -1,0 +1,17 @@
+all:
+  vars:
+    ansible_user: ansible
+    ansible_ssh_private_key_file: "{{ lookup('env', 'AIRGAP_SSH_KEY') }}"
+    ansible_host: 127.0.0.1
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    canary:
+      hosts:
+        patch-canary:
+          ansible_port: 2221
+    fleet:
+      hosts:
+        patch-app01:
+          ansible_port: 2222
+        patch-app02:
+          ansible_port: 2223

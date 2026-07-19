@@ -1,0 +1,23 @@
+---
+- name: List available security updates
+  ansible.builtin.command:
+    cmd: dnf -q updateinfo list --security --available
+  register: patch_security_updates
+  changed_when: false
+  failed_when: patch_security_updates.rc not in [0, 100]
+
+- name: Write assessment evidence on controller
+  ansible.builtin.copy:
+    dest: "{{ playbook_dir }}/../../reports/{{ inventory_hostname }}-assessment.json"
+    mode: "0644"
+    content: >-
+      {{ {
+        'host': inventory_hostname,
+        'mode': 'assessment',
+        'preflight': patch_preflight_evidence,
+        'security_updates': patch_security_updates.stdout_lines,
+        'changed': false
+      } | to_nice_json }}
+  delegate_to: localhost
+  become: false
+  changed_when: false
