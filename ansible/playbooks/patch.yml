@@ -1,0 +1,24 @@
+---
+- name: Patch canary from verified offline bundle
+  hosts: canary
+  gather_facts: true
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - patch_preflight
+    - offline_repo
+    - patch_apply
+    - patch_verify
+
+- name: Patch remaining fleet from verified offline bundle
+  hosts: fleet
+  gather_facts: true
+  become: true
+  serial: 1
+  max_fail_percentage: 0
+  roles:
+    - patch_preflight
+    - offline_repo
+    - patch_apply
+    - patch_verify

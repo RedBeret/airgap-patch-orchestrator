@@ -1,0 +1,32 @@
+---
+- name: Verify required service ports are accepting connections
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ item }}"
+    state: started
+    timeout: 5
+  loop: "{{ patch_required_ports }}"
+
+- name: Refresh facts after patching
+  ansible.builtin.setup:
+
+- name: Write patch evidence on controller
+  ansible.builtin.copy:
+    dest: "{{ playbook_dir }}/../../reports/{{ inventory_hostname }}-patch.json"
+    mode: "0644"
+    content: >-
+      {{ {
+        'host': inventory_hostname,
+        'mode': 'patch',
+        'preflight': patch_preflight_evidence,
+        'changed': patch_transaction.changed,
+        'transaction': patch_transaction.results | default([]),
+        'reboot_required': patch_reboot_check.rc == 1,
+        'reboot_allowed': patch_reboot_allowed,
+        'kernel_after': ansible_facts.kernel,
+        'services_checked': patch_required_services,
+        'ports_checked': patch_required_ports
+      } | to_nice_json }}
+  delegate_to: localhost
+  become: false
+  changed_when: false

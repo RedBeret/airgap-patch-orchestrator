@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project dependencies
+        run: pip install -r requirements-dev.txt -e .
+
+      - name: Run Python tests
+        run: pytest -q
+
+      - name: Check Ansible syntax
+        env:
+          ANSIBLE_CONFIG: ./ansible.cfg
+          AIRGAP_SSH_KEY: /tmp/not-used-for-syntax-check
+        working-directory: ansible
+        run: |
+          ansible-playbook playbooks/assess.yml --syntax-check
+          ansible-playbook playbooks/patch.yml --syntax-check
+
+      - name: Lint Ansible content
+        env:
+          ANSIBLE_CONFIG: ansible/ansible.cfg
+          AIRGAP_SSH_KEY: /tmp/not-used-for-lint
+        run: ansible-lint ansible/playbooks ansible/roles

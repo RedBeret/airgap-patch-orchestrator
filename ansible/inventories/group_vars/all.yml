@@ -1,0 +1,12 @@
+patch_apply: false
+patch_security_only: true
+patch_bundle_dir: "{{ playbook_dir }}/../../bundles/demo"
+patchctl_command: "{{ playbook_dir }}/../../.venv/bin/patchctl"
+patch_repo_id: airgap-patch-bundle
+patch_repo_baseurl: "file:///opt/airgap-patches/packages"
+patch_min_free_mb: 256
+patch_reboot_allowed: false
+patch_required_services:
+  - sshd
+patch_required_ports:
+  - 22

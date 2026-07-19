@@ -1,0 +1,42 @@
+---
+- name: Require explicit patch approval
+  ansible.builtin.assert:
+    that:
+      - patch_apply | bool
+    fail_msg: "Patch installation is locked. Pass -e patch_apply=true explicitly."
+
+- name: Reverify bundle contents immediately before transfer
+  ansible.builtin.command:
+    argv:
+      - "{{ patchctl_command }}"
+      - verify
+      - --bundle-dir
+      - "{{ patch_bundle_dir }}"
+  register: patch_bundle_verification
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: Stop when bundle verification fails
+  ansible.builtin.assert:
+    that:
+      - patch_bundle_verification.rc == 0
+    fail_msg: "Bundle verification failed immediately before transfer."
+
+- name: Copy verified repository bundle to target
+  ansible.builtin.copy:
+    src: "{{ patch_bundle_dir }}/"
+    dest: /opt/airgap-patches/
+    owner: root
+    group: root
+    mode: preserve
+
+- name: Configure isolated patch repository
+  ansible.builtin.yum_repository:
+    name: "{{ patch_repo_id }}"
+    description: Verified air-gap patch bundle
+    baseurl: "{{ patch_repo_baseurl }}"
+    enabled: true
+    gpgcheck: true
+    repo_gpgcheck: false
+    gpgkey: "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-AlmaLinux-9"
