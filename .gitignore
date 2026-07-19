@@ -1,0 +1,14 @@
+.venv/
+bundles/*
+!bundles/.gitkeep
+reports/*
+!reports/.gitkeep
+artifacts/
+*.pyc
+__pycache__/
+.pytest_cache/
+*.egg-info/
+*.retry
+lab/ssh/id_ed25519
+lab/ssh/id_ed25519.pub
+lab/ssh/authorized_keys
