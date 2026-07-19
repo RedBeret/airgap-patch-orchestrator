@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Up', 'Down', 'Assess', 'BuildBundle', 'VerifyBundle', 'Patch', 'Test')]
+    [ValidateSet('Up', 'Down', 'Assess', 'BuildBundle', 'VerifyBundle', 'Patch', 'Test', 'Doctor', 'Status')]
     [string]$Action = 'Assess',
     [switch]$Apply
 )

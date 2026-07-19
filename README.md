@@ -4,10 +4,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Ansible](https://img.shields.io/badge/Ansible-2.18-EE0000?logo=ansible&logoColor=white)](requirements-dev.txt)
 
-Windows-first lab for building, verifying, and applying RPM patch bundles to
-disconnected RHEL-compatible servers. PowerShell is the operator interface, WSL2
-hosts the Ansible control environment, and three disposable AlmaLinux containers
-act as the managed fleet.
+Lab for building, verifying, and applying RPM patch bundles to disconnected
+RHEL-compatible servers. It supports a Windows PowerShell entrypoint and a native
+WSL shell workflow. WSL2 hosts the Ansible control environment, and three disposable
+AlmaLinux containers act as the managed fleet.
 
 The default action is read-only assessment. Package changes require an explicit
 `-Apply` switch, a bundle that passes verification immediately before transfer,
@@ -22,6 +22,7 @@ and a successful canary run.
 - canary-first, one-host-at-a-time rollout
 - disk, operating system, reboot, and service-port checks
 - JSON evidence for assessment and patch runs
+- removal of temporary repository configuration and transferred RPMs
 - an unchanged package transaction when the patch playbook is repeated
 
 The small demo bundle contains `tzdata` and its resolved dependencies so the
@@ -54,7 +55,7 @@ flowchart LR
 Docker Desktop with Ubuntu WSL integration is the simplest setup. The scripts do
 not install or reconfigure WSL, Docker, or system packages.
 
-## Quick start
+## Quick start from Windows
 
 Run these commands from PowerShell in the repository root:
 
@@ -75,30 +76,58 @@ Build and apply the portable demo repository:
 pwsh ./scripts/lab.ps1 -Action BuildBundle
 pwsh ./scripts/lab.ps1 -Action VerifyBundle
 pwsh ./scripts/lab.ps1 -Action Patch -Apply
+pwsh ./scripts/lab.ps1 -Action Down
 ```
+
+## Quick start from WSL
+
+Clone into the Linux filesystem for the fastest development loop:
+
+```bash
+mkdir -p ~/development/CodexWorkspace
+cd ~/development/CodexWorkspace
+git clone https://github.com/RedBeret/airgap-patch-orchestrator.git
+cd airgap-patch-orchestrator
+./scripts/bootstrap.sh
+./scripts/lab.sh doctor
+./scripts/lab.sh up
+./scripts/lab.sh assess
+```
+
+Build and apply the demo bundle from WSL:
+
+```bash
+./scripts/lab.sh build-bundle
+./scripts/lab.sh verify-bundle
+./scripts/lab.sh patch --apply
+./scripts/lab.sh down
+```
+
+Both interfaces call the same Ansible playbooks and write the same artifacts.
 
 The patch action verifies the bundle again, copies it to the target, disables every
 configured DNF repository except the copied bundle, patches the canary, checks SSH,
-and only then continues through the remaining hosts.
-
-Stop and remove the disposable targets when finished:
-
-```powershell
-pwsh ./scripts/lab.ps1 -Action Down
-```
+only then continues through the remaining hosts, and removes temporary patch content.
 
 ## Commands
 
 | Command | Purpose | Changes targets? |
 | --- | --- | --- |
 | `bootstrap.ps1` | Create the WSL Python environment and lab SSH key | No |
+| `bootstrap.sh` | Create the environment and key from native WSL | No |
 | `lab.ps1 -Action Up` | Build and start three disposable targets | Creates containers |
 | `lab.ps1 -Action Assess` | Collect available security advisory data | No |
 | `lab.ps1 -Action BuildBundle` | Download a small demo RPM set and build metadata | No |
 | `lab.ps1 -Action VerifyBundle` | Recompute and compare every bundle checksum | No |
 | `lab.ps1 -Action Patch -Apply` | Run the canary and serial offline patch workflow | Yes |
 | `lab.ps1 -Action Test` | Run unit and Ansible syntax tests | No |
+| `lab.ps1 -Action Doctor` | Check dependencies, Docker, Ansible, and lab keys | No |
+| `lab.ps1 -Action Status` | Show disposable target status | No |
 | `lab.ps1 -Action Down` | Remove the disposable targets and network | Removes containers |
+
+From WSL, use the lowercase action names shown in the quick start. `build-bundle`
+and `verify-bundle` also accept their compact forms, `buildbundle` and
+`verifybundle`.
 
 ## Safety controls
 
@@ -108,6 +137,7 @@ pwsh ./scripts/lab.ps1 -Action Down
 - The DNF transaction uses `disablerepo: "*"` and enables only the copied repository.
 - Hosts are processed with `serial: 1`, with the canary in a separate fatal play.
 - Reboots are detected but disabled by default.
+- Temporary repository configuration and transferred RPMs are removed in an `always` block.
 - The lab SSH private key and generated bundles/reports are ignored by Git.
 - Image builds generate unique SSH host keys when each container starts.
 
@@ -161,11 +191,17 @@ From PowerShell:
 pwsh ./scripts/lab.ps1 -Action Test
 ```
 
+From WSL:
+
+```bash
+./scripts/lab.sh test
+```
+
 The unit suite covers a valid round trip plus corrupted content, unexpected files,
 path traversal, stale verification, and manifest invalidation. GitHub Actions runs
 the unit suite, Ansible syntax checks, and `ansible-lint` on every pull request.
 
-The full local integration sequence is:
+The full Windows integration sequence is:
 
 ```powershell
 pwsh ./scripts/lab.ps1 -Action Up
@@ -187,7 +223,7 @@ applicable Red Hat subscription terms. Do not publish Red Hat RPMs in this repos
 
 Before using the workflow outside a lab, add detached signature verification, change
 approval, application-specific health checks, snapshot orchestration, secret
-management, repository cleanup policy, and a tested recovery runbook. See
+management, an artifact-retention policy, and a tested recovery runbook. See
 [the production security workflow](docs/production-security-workflow.md).
 
 Package downgrade is not treated as a universal rollback mechanism. Recovery should
@@ -211,3 +247,6 @@ reports/                 generated evidence, ignored except for .gitkeep
 ## License
 
 MIT
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the
+[changelog](CHANGELOG.md) for project policies and release history.

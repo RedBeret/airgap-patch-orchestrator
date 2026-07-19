@@ -1,0 +1,11 @@
+---
+- name: Remove temporary offline repository configuration
+  ansible.builtin.yum_repository:
+    name: "{{ patch_repo_id }}"
+    state: absent
+
+- name: Remove transferred patch bundle
+  ansible.builtin.file:
+    path: /opt/airgap-patches
+    state: absent
+  when: patch_cleanup_bundle | bool
